@@ -1,0 +1,17 @@
+<svg id="svg-icon-3" class="icon-svg w-full h-full drop-shadow-sm" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Tire Outer Rubber Body with subtle fill -->
+                  <circle cx="32" cy="32" r="27" fill="#1e293b" fill-opacity="0.12" stroke="#1e293b" stroke-width="3"></circle>
+                  <!-- Inner Bead Ring -->
+                  <circle cx="32" cy="32" r="18.5" stroke="#1e293b" stroke-width="1.8" stroke-dasharray="3 3" opacity="0.75"></circle>
+                  
+                  <!-- Clean Block Treads (Perimeter accents) -->
+                  <path d="M32 5V9.5M32 54.5V59M5 32H9.5M54.5 32H59" stroke="#1e293b" stroke-width="3" stroke-linecap="round"></path>
+                  <path d="M13 13L16.2 16.2M47.8 47.8L51 51M13 51L16.2 47.8M47.8 16.2L51 13" stroke="#1e293b" stroke-width="3" stroke-linecap="round"></path>
+                  
+                  <!-- Central Coin -->
+                  <circle cx="32" cy="32" r="13.5" fill="#f59e0b"></circle>
+                  <circle cx="32" cy="32" r="10.5" stroke="#ffffff" stroke-width="1.5" opacity="0.4"></circle>
+                  
+                  <!-- Bold Typography Dollar -->
+                  <text x="32" y="38" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="800" fill="#ffffff" text-anchor="middle">$</text>
+                </svg>
