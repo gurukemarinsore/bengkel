@@ -80,7 +80,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script>
     // KONFIGURASI: ganti dengan URL deployment Web App GAS yang berakhiran /exec.
-    const CONFIG = Object.freeze({GAS_URL: '', TIMEZONE: 'Asia/Jayapura'});
+    const CONFIG = Object.freeze({GAS_URL: 'https://script.google.com/macros/s/AKfycbz7yoMFuDI3XQKqFcqeUwoJJSWoiDNR4K2NptJwT8uUSErQdynbYO-m5g_Khe6RK4pz/exec', TIMEZONE: 'Asia/Jayapura'});
     const $ = (id) => document.getElementById(id);
     const rupiah = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', maximumFractionDigits:0}).format(n);
     const numberFormat = new Intl.NumberFormat('id-ID');
