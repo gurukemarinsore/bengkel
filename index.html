@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
+  <meta name="bengkel-app" content="revisi_006">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bengkel">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <title>Catatan Keuangan Bengkel</title>
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -329,6 +334,19 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* PWA revisi_006: layar koneksi; desain aplikasi tetap. */
+body.connection-blocked { overflow: hidden; }
+.connection-gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); overflow-y: auto; background: radial-gradient(circle at 80% 15%, rgba(55, 146, 225, .16), transparent 48%), var(--bg); }
+.connection-card { width: min(100%, 420px); padding: 34px 26px; border: 1px solid var(--glass-border); border-radius: 26px; background: var(--glass); box-shadow: var(--shadow); text-align: center; }
+.connection-symbol { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 24px; border-radius: 28px; color: var(--blue); background: var(--blue-soft); animation: connection-pulse 2.4s ease-in-out infinite; }
+.connection-symbol svg { width: 42px; height: 42px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.connection-card h2 { font-size: 23px; letter-spacing: -.6px; line-height: 1.35; margin: 0 0 12px; }
+.connection-card p { font-size: 13px; color: var(--muted); margin: 0 0 24px; line-height: 1.8; }
+.connection-card button { min-height: 44px; }
+.connection-gate[data-mode="server"] .connection-symbol { animation: none; }
+@keyframes connection-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(36, 101, 222, .09); } 50% { box-shadow: 0 0 0 12px rgba(36, 101, 222, .015); } }
+@media (prefers-reduced-motion: reduce) { .connection-symbol { animation: none; } }
   </style>
 </head>
 <body>
@@ -383,6 +401,14 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
     <footer class="app-footer"><span>Bengkel · Catatan keuangan</span><span><span class="footer-dot"></span>Jasa, uang alat, dan pengeluaran</span></footer>
   </main>
   <nav class="bottom-nav" aria-label="Navigasi bawah"><button class="nav-btn" data-page="ringkasan" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Ringkasan</button><button class="nav-btn nav-add" data-page="tambah"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Tambah Catatan</button><button class="nav-btn" data-page="catatan"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>Catatan</button></nav>
+
+  <div id="connection-gate" class="connection-gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-description" data-mode="offline" hidden>
+    <div class="connection-card">
+      <div class="connection-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 18a27 27 0 0 1 34 0M13 25a18 18 0 0 1 22 0M19 32a8 8 0 0 1 10 0"/><circle cx="24" cy="39" r="1.3"/><path d="M8 7l32 34"/></svg></div>
+      <div role="status" aria-live="polite"><h2 id="gate-title" tabindex="-1">Anda sedang offline</h2><p id="gate-description">Hubungkan perangkat ke internet untuk menggunakan aplikasi.</p></div>
+      <button id="gate-retry" type="button" class="button primary">Coba Lagi</button>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <script>
     // KONFIGURASI: ganti dengan URL deployment Web App GAS yang berakhiran /exec.
@@ -421,6 +447,7 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
         m.result&&m.result.ok?pending.resolve(m.result.data):pending.reject(new Error(m.result&&m.result.message||'Permintaan gagal diproses.'));
       }
       connect() {
+        if(!navigator.onLine)return Promise.reject(new Error('Anda sedang offline. Hubungkan perangkat ke internet.'));
         if(this.ready)return this.ready;
         this.ready=new Promise((resolve,reject)=>{
           if(!CONFIG.GAS_URL){reject(new Error('Sambungan data belum diatur.'));return;}
@@ -435,10 +462,13 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
         return this.ready;
       }
       async call(action,payload) {
-        await this.connect();const id=uid();
+        if(!navigator.onLine)throw new Error('Anda sedang offline. Hubungkan perangkat ke internet.');
+        await this.connect();
+        if(!navigator.onLine)throw new Error('Anda sedang offline. Hubungkan perangkat ke internet.');
+        const id=uid();
         return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(action==='save'?'Konfirmasi simpan belum diterima. Tekan Simpan lagi tanpa mengubah isian untuk memeriksa hasil dan mencegah catatan ganda.':'Data belum diterima. Silakan coba lagi.'));},60000);this.pending.set(id,{resolve,reject,timer});this.source.postMessage({type:'BENGKEL_REQUEST',channel:this.channel,id,action,payload},this.remoteOrigin);});
       }
-      reset() {clearTimeout(this.readyTimer);if(this.rejectReady)this.rejectReady(new Error('Sambungan dimulai ulang.'));this.resolveReady=null;this.rejectReady=null;for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(new Error('Sambungan dimulai ulang.'));}this.pending.clear();if(this.frame)this.frame.remove();this.frame=null;this.source=null;this.remoteOrigin=null;this.ready=null;this.channel=null;}
+      reset(reason='Sambungan dimulai ulang.') {clearTimeout(this.readyTimer);if(this.rejectReady)this.rejectReady(new Error(reason));this.resolveReady=null;this.rejectReady=null;for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(new Error(reason));}this.pending.clear();if(this.frame)this.frame.remove();this.frame=null;this.source=null;this.remoteOrigin=null;this.ready=null;this.channel=null;}
     }
     const connection=new GasConnection();
     function updateLabels(){ $('daily-label').textContent=formatDay(state.date);$('monthly-label').textContent=formatMonth(state.month); }
@@ -460,9 +490,10 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
       }
     }
     async function loadData(){
+      if(!navigator.onLine){enterOffline();return false;}
       const version=++state.readVersion;updateLabels();clearFigures();state.records=[];state.loaded=false;renderRecords();setStatus('Memuat catatan…');
-      try{const data=await connection.call('read',{date:state.date,month:state.month});if(version!==state.readVersion)return;state.loaded=true;state.records=data.records;renderSummary(data);renderRecords();setStatus('');}
-      catch(error){if(version!==state.readVersion)return;setStatus(error.message,true,true);}
+      try{const data=await connection.call('read',{date:state.date,month:state.month});if(version!==state.readVersion)return false;state.loaded=true;state.records=data.records;renderSummary(data);renderRecords();setStatus('');return true;}
+      catch(error){if(version!==state.readVersion)return false;setStatus(error.message,true,true);return false;}
     }
     function navigate(page,focus=false){if(!['ringkasan','catatan','tambah'].includes(page))page='ringkasan';for(const name of ['ringkasan','catatan','tambah'])$(`page-${name}`).hidden=name!==page;document.querySelectorAll('[data-page]').forEach(button=>button.dataset.page===page?button.setAttribute('aria-current','page'):button.removeAttribute('aria-current'));if(location.hash!==`#${page}`)history.replaceState(null,'',`#${page}`);window.scrollTo({top:0,behavior:'instant'});if(focus)$(`${page}-title`).focus({preventScroll:true});}
     document.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.page,true)));
@@ -532,7 +563,9 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
     function formMessage(message,success=false){$('form-message').textContent=message;$('form-message').hidden=!message;$('form-message').classList.toggle('success',success);}
     let toastTimer;function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,4500);}
     $('transaction-form').addEventListener('submit',async event=>{
-      event.preventDefault();if(state.saving)return;formMessage('');
+      event.preventDefault();if(state.saving)return;
+      if(!navigator.onLine){enterOffline();return;}
+      formMessage('');
       let payload;try{payload={date:$('transaction-date').value,vehicle:$('vehicle').value,vehicleName:$('vehicle-name').value.trim(),description:$('description').value.trim(),jasa:amountValue($('jasa')),alat:amountValue($('alat')),pengeluaran:amountValue($('pengeluaran'))};if(payload.jasa+payload.alat+payload.pengeluaran===0)throw new Error('Isi minimal satu nominal pemasukan atau pengeluaran.');if(payload.jasa+payload.alat>0&&(!payload.vehicle||!payload.vehicleName||!payload.description))throw new Error('Lengkapi kendaraan dan keterangan perbaikan untuk catatan pemasukan.');}
       catch(error){formMessage(error.message);return;}
       if(!state.requestId)state.requestId=uid();payload.requestId=state.requestId;
@@ -543,7 +576,55 @@ td:nth-child(3).money, td:nth-child(4).money { color: var(--blue); }
       finally{state.saving=false;$('form-fields').disabled=false;$('retry-button').disabled=false;$('save-label').textContent='Simpan Catatan';$('save-icon').setAttribute('href','#i-save');$('save-icon').parentElement.classList.remove('spinner');}
       if(saved)await loadData();
     });
-    themeLabel();navigate(location.hash.slice(1));updateLabels();loadData();
+
+    // PWA: tidak menyimpan transaksi/data GAS di cache atau antrean lokal.
+    let gateActive=false, reconnectVersion=0, gatePreviousFocus=null;
+    const appSurfaces=()=>document.querySelectorAll('.topbar, main, .bottom-nav, #toast');
+    function showConnectionGate(mode){
+      if(!gateActive)gatePreviousFocus=document.activeElement;
+      gateActive=true;
+      const offline=mode==='offline', busy=mode==='connecting';
+      $('connection-gate').hidden=false;$('connection-gate').dataset.mode=mode;
+      $('gate-title').textContent=offline?'Anda sedang offline':busy?'Menghubungkan kembali…':'Sambungan ke server bermasalah';
+      $('gate-description').textContent=offline?'Hubungkan perangkat ke internet untuk menggunakan aplikasi.':busy?'Sedang menyambungkan aplikasi. Isian Anda tetap dipertahankan.':'Internet tersedia, tetapi sambungan ke server belum berhasil. Silakan coba lagi.';
+      $('gate-retry').disabled=busy;$('gate-retry').textContent=busy?'Menghubungkan…':'Coba Lagi';
+      document.body.classList.add('connection-blocked');
+      appSurfaces().forEach(el=>{el.inert=true;});
+      $('gate-title').focus({preventScroll:true});
+    }
+    function hideConnectionGate(){
+      gateActive=false;$('connection-gate').hidden=true;document.body.classList.remove('connection-blocked');
+      appSurfaces().forEach(el=>{el.inert=false;});
+      if(gatePreviousFocus&&gatePreviousFocus.isConnected)gatePreviousFocus.focus({preventScroll:true});
+    }
+    function enterOffline(){
+      ++reconnectVersion;++state.readVersion;
+      connection.reset('Internet terputus. Penyimpanan yang sedang berjalan belum terkonfirmasi. Setelah tersambung, tekan Simpan lagi tanpa mengubah isian.');
+      showConnectionGate('offline');
+    }
+    async function reconnectApplication(){
+      if(!navigator.onLine){showConnectionGate('offline');return;}
+      if(state.saving){setTimeout(reconnectApplication,300);return;}
+      const attempt=++reconnectVersion;showConnectionGate('connecting');connection.reset();
+      const success=await loadData();
+      if(attempt!==reconnectVersion)return;
+      if(!navigator.onLine){enterOffline();return;}
+      if(success)hideConnectionGate();else showConnectionGate('server');
+    }
+    window.addEventListener('offline',enterOffline);
+    window.addEventListener('online',()=>{if(gateActive)reconnectApplication();});
+    $('gate-retry').addEventListener('click',reconnectApplication);
+    $('connection-gate').addEventListener('keydown',event=>{
+      if(event.key==='Tab'&&!$('gate-retry').disabled){event.preventDefault();$('gate-retry').focus();}
+    });
+    if('serviceWorker' in navigator&&window.isSecureContext){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'})
+          .catch(error=>console.warn('PWA belum aktif:',error.message));
+      });
+    }
+    themeLabel();navigate(location.hash.slice(1));updateLabels();
+    if(navigator.onLine)loadData();else enterOffline();
   </script>
 </body>
 </html>

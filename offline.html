@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="id" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f3f7ff">
+<title>Offline · Catatan Keuangan Bengkel</title><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('bengkel-theme')||'light';}catch(_){}</script>
+<style>
+:root{--bg:#f3f7ff;--text:#132a49;--muted:#5d718b;--blue:#2465de;--blue-soft:#e6efff;--glass:rgba(255,255,255,.85);--glass-border:rgba(255,255,255,.94);--shadow:0 16px 42px rgba(35,67,127,.075);color-scheme:light;}
+[data-theme="dark"]{--bg:#091426;--text:#edf4ff;--muted:#a8bad2;--blue:#91c0ff;--blue-soft:#203d63;--glass:rgba(18,35,57,.85);--glass-border:rgba(109,145,196,.2);--shadow:0 18px 44px rgba(0,0,0,.16);color-scheme:dark;}
+*{box-sizing:border-box;}body{margin:0;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;}button{font:inherit;cursor:pointer;}[hidden]{display:none!important;}
+.button{border:0;border-radius:13px;padding:13px 22px;font-size:12px;font-weight:700;background:linear-gradient(115deg,#245bdc,#0876d0 75%,#078695);color:#fff;box-shadow:0 7px 15px rgba(26,94,193,.19);}button:disabled{opacity:.65;cursor:wait;}button:focus-visible{outline:3px solid var(--blue);outline-offset:4px;}
+
+/* PWA revisi_006: layar koneksi; desain aplikasi tetap. */
+body.connection-blocked { overflow: hidden; }
+.connection-gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); overflow-y: auto; background: radial-gradient(circle at 80% 15%, rgba(55, 146, 225, .16), transparent 48%), var(--bg); }
+.connection-card { width: min(100%, 420px); padding: 34px 26px; border: 1px solid var(--glass-border); border-radius: 26px; background: var(--glass); box-shadow: var(--shadow); text-align: center; }
+.connection-symbol { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 24px; border-radius: 28px; color: var(--blue); background: var(--blue-soft); animation: connection-pulse 2.4s ease-in-out infinite; }
+.connection-symbol svg { width: 42px; height: 42px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.connection-card h2 { font-size: 23px; letter-spacing: -.6px; line-height: 1.35; margin: 0 0 12px; }
+.connection-card p { font-size: 13px; color: var(--muted); margin: 0 0 24px; line-height: 1.8; }
+.connection-card button { min-height: 44px; }
+.connection-gate[data-mode="server"] .connection-symbol { animation: none; }
+@keyframes connection-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(36, 101, 222, .09); } 50% { box-shadow: 0 0 0 12px rgba(36, 101, 222, .015); } }
+@media (prefers-reduced-motion: reduce) { .connection-symbol { animation: none; } }
+
+</style></head><body>
+
+  <div id="connection-gate" class="connection-gate" role="main" aria-labelledby="gate-title" aria-describedby="gate-description" data-mode="offline">
+    <div class="connection-card">
+      <div class="connection-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 18a27 27 0 0 1 34 0M13 25a18 18 0 0 1 22 0M19 32a8 8 0 0 1 10 0"/><circle cx="24" cy="39" r="1.3"/><path d="M8 7l32 34"/></svg></div>
+      <div role="status" aria-live="polite"><h2 id="gate-title" tabindex="-1">Anda sedang offline</h2><p id="gate-description">Hubungkan perangkat ke internet untuk menggunakan aplikasi.</p></div>
+      <button id="gate-retry" type="button" class="button primary">Coba Lagi</button>
+    </div>
+  </div>
+
+<script>
+const title=document.getElementById('gate-title'),description=document.getElementById('gate-description'),button=document.getElementById('gate-retry');
+let checking=false;
+async function checkConnection(){
+  if(checking)return;checking=true;button.disabled=true;
+  title.textContent=navigator.onLine?'Menghubungkan kembali…':'Anda sedang offline';
+  description.textContent=navigator.onLine?'Memeriksa sambungan internet…':'Hubungkan perangkat ke internet untuk menggunakan aplikasi.';
+  const abort=new AbortController();const timer=setTimeout(()=>abort.abort(),8000);
+  try{
+    const target=new URL('./index.html',location.href);target.searchParams.set('pwa_probe',Date.now());
+    const response=await fetch(target,{cache:'no-store',signal:abort.signal});
+    if(!response.ok)throw new Error('Server belum merespons.');
+    const text=await response.text();if(!text.includes('name="bengkel-app"'))throw new Error('Halaman aplikasi belum tersedia.');
+    if(location.pathname.endsWith('/offline.html'))location.replace(new URL('./',location.href).href);else location.reload();
+  }catch(_){
+    title.textContent=navigator.onLine?'Sambungan belum tersedia':'Anda sedang offline';
+    description.textContent=navigator.onLine?'Sambungan belum berhasil. Aplikasi akan mencoba kembali secara otomatis.':'Hubungkan perangkat ke internet untuk menggunakan aplikasi.';
+  }finally{clearTimeout(timer);checking=false;button.disabled=false;}
+}
+button.addEventListener('click',checkConnection);window.addEventListener('online',checkConnection);
+window.addEventListener('offline',()=>{title.textContent='Anda sedang offline';description.textContent='Hubungkan perangkat ke internet untuk menggunakan aplikasi.';});
+setInterval(checkConnection,10000);if(navigator.onLine)checkConnection();
+</script></body></html>
